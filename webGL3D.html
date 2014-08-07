@@ -54,6 +54,7 @@ var shaderProjectionMatrixUniform, shaderModelViewMatrixUniform,shaderNormalView
 var vertexNormalAttribute;
 var vertexPositionAttribute;
 
+
   var vertices = [// Data layout for each line below is:
         // UV1,UV2, Normal1, Normal2, Normal3, positionX, positionY, positionZ
         0.00000, 1.00000, 0.00000, 0.00000, 1.00000, -0.50000, -0.50000, 0.50000,
@@ -129,7 +130,7 @@ function start() {
     
     // Set up to draw the scene periodically.
     drawScene();
-    //setInterval(drawScene, 15);
+    
   }
 }
 
@@ -139,18 +140,24 @@ function initTransformation(canvas)
 {
         // Create a model view matrix with camera at 0, 0, −3.333
         modelViewMatrix = mat4.create();
+        
+        //translate the camera
 		mat4.translate(modelViewMatrix,modelViewMatrix,[0,0,-3.3]);
 		
+		//rotate the camer
 		mat4.rotate(modelViewMatrix,modelViewMatrix,45,[1.0,1.0,1.0]);
 		
-        // Create a project matrix with 45 degree field of view
+        // Create a projection matrix with 45 degree field of view
         projectionMatrix = mat4.create();
         mat4.perspective(projectionMatrix, Math.PI / 4,
             canvas.width / canvas.height, 1, 10000);
-            
+        
+        //crete a normal matrix
         normalMatrix=mat3.create();
+        
         mat3.normalFromMat4(normalMatrix,modelViewMatrix);
-            
+        
+        //link the matrices data to the uniform locations in the shaders.    
         gl.uniformMatrix4fv(shaderProjectionMatrixUniform, false, projectionMatrix);
         gl.uniformMatrix4fv(shaderModelViewMatrixUniform, false, modelViewMatrix);
         gl.uniformMatrix3fv(shaderNormalViewMatrixUniform, false, normalMatrix);
@@ -160,53 +167,49 @@ function initTransformation(canvas)
 
 
 
-// Initialize the buffers we'll need. For this demo, we just have
-// one object -- a simple two-dimensional square.
-//
+// Initialize the buffers
 function initBuffers() {
   
-  // Create a buffer for the cube's vertices.
+  //1. Generate a Vertex Buffer Object
   
   cubeVerticesBuffer = gl.createBuffer();
   
-  // Select the cubeVerticesBuffer as the one to apply vertex
-  // operations to from here out.
+  //2. Bind the Vertex Buffer Object
   
   gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
 
-  
-  // Now pass the list of vertices into WebGL to build the shape. We
-  // do this by creating a Float32Array from the JavaScript array,
-  // then use it to fill the current vertex buffer.
+  //3. Dump the date into the Buffer
   
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
   
-  
-  
+  //4. Get the location of the shader attribute called "position"
   vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "position");
+  
+  //5. Get the location of the shader attribute called "normal"
+  
   vertexNormalAttribute = gl.getAttribLocation(shaderProgram, "normal");
   
+  //6. Enable both locations
   gl.enableVertexAttribArray(vertexPositionAttribute);
   gl.enableVertexAttribArray(vertexNormalAttribute);
   
-   // Draw the cube by binding the array buffer to the cube's vertices
-  // array, setting attributes, and pushing it to GL.
+  //7. Link the buffer data to the shader attribute locations
   gl.vertexAttribPointer(vertexPositionAttribute, 3, gl.FLOAT, false, 32, 20);
   gl.vertexAttribPointer(vertexNormalAttribute, 3, gl.FLOAT, false, 32, 8);
   
  
-  // Build the element array buffer; this specifies the indices
-  // into the vertex array for each face's vertices.
+  //8. Generate a Vertex Buffer Object for the indeces
   
   cubeVerticesIndexBuffer = gl.createBuffer();
+  
+  //9. Bind the Vertex Buffer Object
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesIndexBuffer);
   
-  // Now send the element array to GL
+  //10. Dump the index data into the Buffer
   
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
       
-      
+  //11. Get Location of uniforms
   shaderProjectionMatrixUniform = gl.getUniformLocation(shaderProgram, "PMatrix");
   shaderModelViewMatrixUniform = gl.getUniformLocation(shaderProgram, "MVMatrix");
   shaderNormalViewMatrixUniform=gl.getUniformLocation(shaderProgram, "NormalMatrix");
@@ -214,27 +217,28 @@ function initBuffers() {
 }
 
 
-// Draw the scene.
+// Draw the cube.
 //
 function drawScene() {
   // Clear the canvas before we start drawing on it.
-
+ 
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVerticesIndexBuffer);
   
   gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+  
 }
 
 
 // Initialize WebGL, returning the GL context or null if
 // WebGL isn't available or could not be initialized.
 //
-function initWebGL() {
+function initWebGL(uCanvas) {
   gl = null;
   
   try {
-    gl = canvas.getContext("experimental-webgl");
+    gl = uCanvas.getContext("experimental-webgl");
   }
   catch(e) {
   }
@@ -250,14 +254,19 @@ function initWebGL() {
 // Initialize the shaders, so WebGL knows how to light our scene.
 //
 function initShaders() {
+
+  //create the shaders with getShader()
   var fragmentShader = getShader(gl, "shader-fs");
   var vertexShader = getShader(gl, "shader-vs");
   
   // Create the shader program
-  
   shaderProgram = gl.createProgram();
+  
+  //attach the shaders to the program
   gl.attachShader(shaderProgram, vertexShader);
   gl.attachShader(shaderProgram, fragmentShader);
+  
+  //link the shader program
   gl.linkProgram(shaderProgram);
   
   // If creating the shader program failed, alert
@@ -266,6 +275,7 @@ function initShaders() {
     alert("Unable to initialize the shader program.");
   }
   
+  //use the shader
   gl.useProgram(shaderProgram);
   
   
